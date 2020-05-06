@@ -13,7 +13,9 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 
@@ -22,10 +24,14 @@ public class GraphQLProvider {
 
     private GraphQL graphQL;
 
-    private GraphQLDataFetchers graphQLDataFetchers;
+    private GameCharacterService gameCharacterService;
+    private PlayerService playerService;
+    private WeaponService weaponService;
 
-    public GraphQLProvider(GraphQLDataFetchers graphQLDataFetchers) {
-        this.graphQLDataFetchers = graphQLDataFetchers;
+    public GraphQLProvider(GameCharacterService gameCharacterService, PlayerService playerService, WeaponService weaponService) {
+        this.gameCharacterService = gameCharacterService;
+        this.playerService = playerService;
+        this.weaponService = weaponService;
     }
 
     @Bean
@@ -35,27 +41,40 @@ public class GraphQLProvider {
 
     @PostConstruct
     public void init() throws IOException {
-        File resource = new ClassPathResource(
-                "schema/graphqls").getFile();
-        String sdl = new String(Files.readAllBytes(resource.toPath()));
-        GraphQLSchema graphQLSchema = buildSchema(sdl);
+        File schemaFolder = new File(String.valueOf(new ClassPathResource("schema").getFile()));
+        List<File> files = Arrays.asList(Objects.requireNonNull(schemaFolder.listFiles()));
+        GraphQLSchema graphQLSchema = buildSchema(files);
         this.graphQL = GraphQL.newGraphQL(graphQLSchema).build();
     }
 
-    private GraphQLSchema buildSchema(String sdl) {
-        TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(sdl);
+    private GraphQLSchema buildSchema(List<File> files) {
+        TypeDefinitionRegistry typeRegistry = new TypeDefinitionRegistry();
         SchemaGenerator schemaGenerator = new SchemaGenerator();
+        SchemaParser schemaParser = new SchemaParser();
+
+        files.forEach(file -> typeRegistry.merge(schemaParser.parse(file)));
+
         RuntimeWiring runtimeWiring = buildWiring();
         return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
     }
 
     private RuntimeWiring buildWiring() {
+        final String query = "Query";
+        final String mutation = "Mutation";
         return RuntimeWiring.newRuntimeWiring()
-                .type(newTypeWiring("Query")
-                        .dataFetcher("getAllWeapons", graphQLDataFetchers.getAllWeapons()))
-                .type(newTypeWiring("Query")
-                        .dataFetcher("getWeaponById", graphQLDataFetchers.getWeaponById()))
+                .type(query, wiring -> wiring
+                        .dataFetcher("getAllWeapons", weaponService.getAllWeapons())
+                        .dataFetcher("getAllPlayers", playerService.getAllPlayers())
+                        .dataFetcher("getWeaponById", weaponService.getWeaponById())
+                        .dataFetcher("getPlayerById", playerService.getPlayerById())
+                        .dataFetcher("getPlayerByEmail", playerService.getPlayerByEmail())
+                        .dataFetcher("getAllCharacters", gameCharacterService.getAllCharacters())
+                        .dataFetcher("getCharacterById", gameCharacterService.getCharacterById())
+                        .dataFetcher("getCharacterByName", gameCharacterService.getCharacterByName()))
+                .type(newTypeWiring("Player")
+                        .dataFetcher("characters", gameCharacterService.getCharactersByPlayerId()))
+                .type(newTypeWiring("GameCharacter")
+                        .dataFetcher("weapons", weaponService.getWeaponsByCharacterId()))
                 .build();
     }
-
 }

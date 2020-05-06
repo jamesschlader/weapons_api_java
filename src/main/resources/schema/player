@@ -1,0 +1,13 @@
+type Query {
+     getAllPlayers: [Player]
+     getPlayerById(id: ID): Player
+     getPlayerByEmail(email: String): Player
+}
+
+type Player {
+    player_id: ID!
+    first_name: String!
+    last_name: String
+    email: String!
+    characters: [GameCharacter]
+}

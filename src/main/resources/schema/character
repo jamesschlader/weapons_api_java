@@ -1,0 +1,11 @@
+extend type Query {
+    getAllCharacters: [GameCharacter]
+    getCharacterById(id: ID): GameCharacter
+    getCharacterByName(name: String): GameCharacter
+}
+
+type GameCharacter {
+    game_character_id: ID!
+    name: String!
+    weapons: [Weapon]
+}

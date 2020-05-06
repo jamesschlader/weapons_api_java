@@ -1,4 +1,4 @@
-type Query {
+extend type Query {
     getAllWeapons: [Weapon]
     getWeaponById(id: ID): Weapon
 }
@@ -9,12 +9,12 @@ type Weapon {
     name: String!
     image: String!
     type: String
-    overall_length: Float
-    blade_length: Float
-    blade_width: Float
+    overallLength: Float
+    bladeLength: Float
+    bladeWidth: Float
     cob: Float
     cop: Float
     weight: Float
-    ax_edge_length: Float
-    ax_war_head_depth: Float
+    axEdgeLength: Float
+    axWarHeadDepth: Float
 }
